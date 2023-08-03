@@ -1,0 +1,69 @@
+<head>
+    <!DOCTYPE html>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    Signal:
+    <br>
+    <canvas id="canvasSignal" width="640" height="320"></canvas>
+    <br>
+    <br>
+    Spectrum:
+    <br>
+    <canvas id="canvasSpectrum" width="640" height="320"></canvas>
+    <script>
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyzer = audioCtx.createAnalyser();
+
+        function drawSignal(canvas, A, n) {
+            const ctx = canvas.getContext("2d");
+            const m = 160;
+            const sx = 640 / n;
+
+            let max = 32;
+            for (let i = 0; i < n; i++)
+                max = Math.max(max, Math.abs(A[i]));
+
+            const s = 80 / max;
+
+            ctx.clearRect(0, 0, 640, 480);
+
+            ctx.beginPath();
+            ctx.strokeStyle = "lightgray";
+            ctx.moveTo(0, m);
+            ctx.lineTo(640, m);
+            ctx.stroke();
+
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            ctx.moveTo(0, m + s * A[0]);
+            for (let i = 0; i < n; i++) {
+                ctx.lineTo(i * sx, m + s * A[i]);
+            }
+            ctx.stroke();
+        }
+
+        async function run() {
+            let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            let microphoneStream = audioCtx.createMediaStreamSource(stream);
+            microphoneStream.connect(analyzer);
+
+            const temporalData = new Float32Array(analyzer.fftSize);
+            const frequencyData = new Float32Array(analyzer.frequencyBinCount);
+
+            setInterval(() => {
+                analyzer.getFloatTimeDomainData(temporalData);
+                analyzer.getFloatFrequencyData(frequencyData);
+
+                drawSignal(canvasSignal, temporalData, analyzer.fftSize);
+                drawSignal(canvasSpectrum, frequencyData, analyzer.frequencyBinCount);
+            }, 30);
+        }
+
+        run();
+
+
+    </script>
+</body>
