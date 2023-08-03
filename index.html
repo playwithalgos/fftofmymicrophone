@@ -17,17 +17,16 @@
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const analyzer = audioCtx.createAnalyser();
 
-        function drawSignal(canvas, A, n) {
+        function drawSignal(canvas, A, n, max=1) {
             const ctx = canvas.getContext("2d");
             const m = 160;
             const sx = 640 / n;
 
-            let max = 32;
             for (let i = 0; i < n; i++)
                 max = Math.max(max, Math.abs(A[i]));
 
-            const s = 80 / max;
-
+            const s = 160 / max;
+            console.log(max)
             ctx.clearRect(0, 0, 640, 480);
 
             ctx.beginPath();
@@ -40,7 +39,7 @@
             ctx.beginPath();
             ctx.moveTo(0, m + s * A[0]);
             for (let i = 0; i < n; i++) {
-                ctx.lineTo(i * sx, m + s * A[i]);
+                ctx.lineTo(i * sx, m - s * A[i]);
             }
             ctx.stroke();
         }
@@ -53,12 +52,18 @@
             const temporalData = new Float32Array(analyzer.fftSize);
             const frequencyData = new Float32Array(analyzer.frequencyBinCount);
 
+
             setInterval(() => {
                 analyzer.getFloatTimeDomainData(temporalData);
                 analyzer.getFloatFrequencyData(frequencyData);
 
+                const F = [];
+                for (let i = 0; i < analyzer.frequencyBinCount; i++)
+                    F.push(2 ** (frequencyData[i] - analyzer.minDecibels) / (analyzer.maxDecibels - analyzer.minDecibels));
+
+
                 drawSignal(canvasSignal, temporalData, analyzer.fftSize);
-                drawSignal(canvasSpectrum, frequencyData, analyzer.frequencyBinCount);
+                drawSignal(canvasSpectrum, F, analyzer.frequencyBinCount);
             }, 30);
         }
 
