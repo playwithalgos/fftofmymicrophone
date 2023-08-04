@@ -4,35 +4,36 @@
 </head>
 
 <body>
-    Signal:
+    Temporal Signal:
     <br>
-    <canvas id="canvasSignal" width="640" height="320"></canvas>
+    <canvas id="canvasSignal" width="1280" height="320"></canvas>
     <br>
     <br>
-    Spectrum:
+    Frequency Spectrum:
     <br>
-    <canvas id="canvasSpectrum" width="640" height="320"></canvas>
-    <script>
+    <canvas id="canvasSpectrum" width="1280" height="320"></canvas>
 
+    <script>
+        const width = 1280;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const analyzer = audioCtx.createAnalyser();
 
-        function drawSignal(canvas, A, n, max=1) {
+        function drawSignal(canvas, A, n, max = 1) {
             const ctx = canvas.getContext("2d");
             const m = 160;
-            const sx = 640 / n;
+            const sx = canvas.width / n;
 
             for (let i = 0; i < n; i++)
                 max = Math.max(max, Math.abs(A[i]));
 
-            const s = 160 / max;
+            const s = canvas.height / (2 * max);
             console.log(max)
-            ctx.clearRect(0, 0, 640, 480);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.beginPath();
             ctx.strokeStyle = "lightgray";
             ctx.moveTo(0, m);
-            ctx.lineTo(640, m);
+            ctx.lineTo(canvas.width, m);
             ctx.stroke();
 
             ctx.strokeStyle = "black";
@@ -55,20 +56,33 @@
 
             setInterval(() => {
                 analyzer.getFloatTimeDomainData(temporalData);
-                analyzer.getFloatFrequencyData(frequencyData);
+                /*analyzer.getFloatFrequencyData(frequencyData);
 
                 const F = [];
                 for (let i = 0; i < analyzer.frequencyBinCount; i++)
                     F.push(2 ** (frequencyData[i] - analyzer.minDecibels) / (analyzer.maxDecibels - analyzer.minDecibels));
+*/
+                const n = analyzer.fftSize;
+                const spectrum = dtfnaïve(temporalData, n);
 
-
-                drawSignal(canvasSignal, temporalData, analyzer.fftSize);
-                drawSignal(canvasSpectrum, F, analyzer.frequencyBinCount);
-            }, 30);
+                drawSignal(canvasSignal, temporalData, n);
+                drawSignal(canvasSpectrum, spectrum, n);
+            }, 0);
         }
 
         run();
 
+        function dtfnaïve(signal, n) {
+            const spectrum = [];
+            for (let f = 0; f < n; f++) {
+                let s = 0;
+                for (let t = 0; t < n; t++) {
+                    s += signal[t] * Math.cos(2 * Math.PI * f * t / n);
+                }
+                spectrum[f] = s;
+            }
+            return spectrum;
 
+        }
     </script>
 </body>
